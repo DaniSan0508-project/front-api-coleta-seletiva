@@ -1,4 +1,4 @@
-import React, { useEffect,useState } from 'react';
+import React, { ChangeEvent, FormEvent, useEffect,useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FiArrowLeft } from 'react-icons/fi';
 import { Map, TileLayer, Marker } from 'react-leaflet';
@@ -16,6 +16,14 @@ interface Item {
 const CreateLocation:React.FC = () =>{
     const [items,setItems] = useState<Item[]>();
     const [selectedMapPosition,setSelectedMapPosition] = useState<[number,number]>([0,0])
+    const [formData,setFormData] = useState({
+        name:'',
+        email:'',
+        whatsapp:'',
+        city:'',
+        uf:'',
+    });
+    const [selectedItems,setSelectedItems] = useState<number[]>([])
 
     useEffect(()=>{
         api.get('items').then(response=>{
@@ -32,6 +40,44 @@ const CreateLocation:React.FC = () =>{
         ])
     }
 
+    function handleInputChange(event:ChangeEvent<HTMLInputElement>){
+        console.log(event.target.name, event.target.value)
+        const { name,value } = event.target;
+        setFormData({...formData,[name]:value})
+    }
+
+    async function handleSubmit(event:FormEvent){
+        event.preventDefault();
+        const { city, email, name, uf, whatsapp } = formData;
+        const [ latitude, longitude ] = selectedMapPosition;
+        const items = selectedItems;
+
+        const data = {
+            city,
+            email,
+            name,
+            uf,
+            whatsapp,
+            latitude,
+            longitude,
+            items
+        }
+        await api.post('locations', data)
+        
+    }
+
+    function handleSelectItem(id:number){
+        
+        const alreadySelected = selectedItems.findIndex(item => item === id)
+        console.log(alreadySelected)
+        if(alreadySelected >= 0){
+            const filteredItems = selectedItems.filter(item => item !== id)
+            setSelectedItems(filteredItems)
+        }else{
+            setSelectedItems([...selectedItems,id])
+        }
+    }
+
     return (
         <div id="page-create-location">
             <div className="content">
@@ -43,7 +89,7 @@ const CreateLocation:React.FC = () =>{
                     </Link>
                 </header>
 
-                <form>
+                <form onSubmit={handleSubmit}>
                     <h1>Cadastro do <br /> local de coleta</h1>
 
                     <fieldset>
@@ -57,7 +103,7 @@ const CreateLocation:React.FC = () =>{
                                 type="text"
                                 name="name"
                                 id="name"
-                               
+                                onChange={handleInputChange}
                             />
                         </div>
                         <div className="field-group">
@@ -67,7 +113,7 @@ const CreateLocation:React.FC = () =>{
                                     type="email"
                                     name="email"
                                     id="email"
-                                 
+                                    onChange={handleInputChange}
                                 />
                             </div>
                             <div className="field">
@@ -76,7 +122,7 @@ const CreateLocation:React.FC = () =>{
                                     type="text"
                                     name="whatsapp"
                                     id="whatsapp"
-                                    
+                                    onChange={handleInputChange}
                                 />
                             </div>
                         </div>
@@ -101,6 +147,7 @@ const CreateLocation:React.FC = () =>{
                                     type="text"
                                     name="city"
                                     id="city"
+                                    onChange={handleInputChange}
                                 />
                             </div>
                             <div className="field">
@@ -109,6 +156,7 @@ const CreateLocation:React.FC = () =>{
                                     type="text"
                                     name="uf"
                                     id="uf"
+                                    onChange={handleInputChange}
                                 />
                             </div>
                         </div>
@@ -122,7 +170,11 @@ const CreateLocation:React.FC = () =>{
                         <ul className="items-grid">
                             {
                             items?.map(item=>(
-                            <li key={item.id}>
+                            <li 
+                                key={item.id} 
+                                onClick={()=> handleSelectItem(Number(item.id))}
+                                className={selectedItems.includes(Number(item.id)) ? 'selected' : ''}
+                                >
                                 <img src={item.image_url} alt={item.title} />
                             </li>
                         ))
